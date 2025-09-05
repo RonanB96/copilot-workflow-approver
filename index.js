@@ -1,10 +1,10 @@
-module.exports = (app) => {
+export default (app) => {
   // Handle pull request events - add auto-approval comment
   app.on("pull_request.opened", async (context) => {
     const pr = context.payload.pull_request;
 
     // Only process PRs from GitHub Copilot
-    if (pr.user.login !== "github-copilot-agent") return;
+    if (pr.user.login !== "github-copilot[bot]") return;
 
     // Check if workflow files were modified
     const files = await context.octokit.pulls.listFiles(
@@ -45,7 +45,7 @@ module.exports = (app) => {
       context.repo({ pull_number: prNumber })
     );
 
-    if (pr.data.user.login !== "github-copilot-agent") return;
+    if (pr.data.user.login !== "github-copilot[bot]") return;
 
     // Check if workflow files were modified in this PR
     const files = await context.octokit.pulls.listFiles(
