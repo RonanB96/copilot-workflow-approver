@@ -1,0 +1,19 @@
+# GitHub App manifest
+# See https://docs.github.com/en/developers/apps/creating-a-github-app-from-a-manifest
+
+name: Copilot Auto-Approve
+description: Auto-approve workflow runs for GitHub Copilot pull requests
+author: RonanB96
+public: false
+
+default_permissions:
+  # Required to read pull request details and files
+  pull_requests: read
+  # Required to approve workflow runs
+  actions: write
+  # Required to read repository metadata
+  metadata: read
+
+default_events:
+  - pull_request
+  - workflow_run

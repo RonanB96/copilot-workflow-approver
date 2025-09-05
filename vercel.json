@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "functions": {
+    "api/webhook.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "env": {
+    "APP_ID": "@app_id",
+    "PRIVATE_KEY": "@private_key", 
+    "WEBHOOK_SECRET": "@webhook_secret"
+  }
+}
