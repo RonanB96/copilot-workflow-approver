@@ -1,6 +1,18 @@
 export default (app) => {
   console.log('🎯 GitHub Copilot Auto-Approver loaded');
   
+  // List of known Copilot usernames
+  const COPILOT_USERNAMES = [
+    'github-copilot[bot]',
+    'copilot-swe-agent',
+    'Copilot',
+    'github-copilot'
+  ];
+  
+  function isCopilotUser(username) {
+    return COPILOT_USERNAMES.includes(username);
+  }
+  
   // Handle pull request events - add auto-approval comment
   app.on("pull_request.opened", async (context) => {
     console.log('📝 PR opened event received');
@@ -9,12 +21,12 @@ export default (app) => {
     console.log(`🔍 Checking PR #${pr.number} by ${pr.user.login}`);
 
     // Only process PRs from GitHub Copilot
-    if (pr.user.login !== "github-copilot[bot]") {
+    if (!isCopilotUser(pr.user.login)) {
       console.log(`⏭️ Skipping PR #${pr.number} - not from GitHub Copilot (user: ${pr.user.login})`);
       return;
     }
 
-    console.log(`🤖 Copilot PR detected: #${pr.number} - ${pr.title}`);
+    console.log(`🤖 Copilot PR detected: #${pr.number} - ${pr.title} (by ${pr.user.login})`);
 
     // Check if workflow files were modified
     const files = await context.octokit.pulls.listFiles(
@@ -46,6 +58,22 @@ export default (app) => {
     }
   });
 
+  // Also handle synchronize events (when PR is updated)
+  app.on("pull_request.synchronize", async (context) => {
+    console.log('🔄 PR synchronize event received');
+    const pr = context.payload.pull_request;
+    
+    console.log(`🔍 Checking updated PR #${pr.number} by ${pr.user.login}`);
+
+    // Only process PRs from GitHub Copilot
+    if (!isCopilotUser(pr.user.login)) {
+      console.log(`⏭️ Skipping PR update #${pr.number} - not from GitHub Copilot (user: ${pr.user.login})`);
+      return;
+    }
+
+    console.log(`🤖 Copilot PR update detected: #${pr.number} - ${pr.title} (by ${pr.user.login})`);
+  });
+
   // Handle workflow run events - try multiple approval approaches
   app.on("workflow_run.requested", async (context) => {
     console.log('⚡ Workflow run requested event received');
@@ -67,12 +95,12 @@ export default (app) => {
       context.repo({ pull_number: prNumber })
     );
 
-    if (pr.data.user.login !== "github-copilot[bot]") {
+    if (!isCopilotUser(pr.data.user.login)) {
       console.log(`⏭️ Skipping workflow run ${workflowRun.id} - PR #${prNumber} not from GitHub Copilot (user: ${pr.data.user.login})`);
       return;
     }
 
-    console.log(`🤖 Copilot workflow run detected: ${workflowRun.id} for PR #${prNumber}`);
+    console.log(`🤖 Copilot workflow run detected: ${workflowRun.id} for PR #${prNumber} (by ${pr.data.user.login})`);
 
     // Check if workflow files were modified in this PR
     const files = await context.octokit.pulls.listFiles(
