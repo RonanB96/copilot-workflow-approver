@@ -1,6 +1,6 @@
 export default (app) => {
   console.log('🎯 GitHub Copilot Auto-Approver loaded');
-  
+
   // List of known Copilot usernames
   const COPILOT_USERNAMES = [
     'github-copilot[bot]',
@@ -8,47 +8,45 @@ export default (app) => {
     'Copilot',
     'github-copilot'
   ];
-  
+
   function isCopilotUser(username) {
     return COPILOT_USERNAMES.includes(username);
   }
-  
-    // Generic handler for all pull_request actions
-    app.on("pull_request", async (context) => {
-      const pr = context.payload.pull_request;
-      app.log(`📝 pull_request event: action=${context.payload.action}, PR #${pr?.number}, user=${pr?.user?.login}`);
 
-      if (!pr || !pr.user || !COPILOT_USERNAMES.includes(pr.user.login)) {
-        app.log(`⏭️ Skipping PR: not a Copilot user (${pr?.user?.login})`);
-        return;
-      }
+  // Generic handler for all pull_request actions
+  app.on("pull_request", async (context) => {
+    const pr = context.payload.pull_request;
+    console.log(`📝 pull_request event: action=${context.payload.action}, PR #${pr?.number}, user=${pr?.user?.login}`);
 
-      app.log(`🤖 Copilot PR detected: #${pr.number} - ${pr.title}`);
-      // ...existing code for workflow approval...
-    });
+    if (!pr || !pr.user || !COPILOT_USERNAMES.includes(pr.user.login)) {
+      console.log(`⏭️ Skipping PR: not a Copilot user (${pr?.user?.login})`);
+      return;
+    }
 
-    // Optionally, add more logging for other events
-    app.onAny(async (event) => {
-      app.log(`🔔 Event received: ${event.name}`);
-    });
+    console.log(`🤖 Copilot PR detected: #${pr.number} - ${pr.title}`);
+    // ...existing code for workflow approval...
+  });
 
-  // Handle workflow run events - try multiple approval approaches
+  // Optionally, add more logging for other events
+  app.onAny(async (event) => {
+    console.log(`🔔 Event received: ${event.name}`);
+  });  // Handle workflow run events - try multiple approval approaches
   app.on("workflow_run.requested", async (context) => {
     console.log('⚡ Workflow run requested event received');
     const workflowRun = context.payload.workflow_run;
-    
+
     console.log(`🔍 Checking workflow run ${workflowRun.id} for workflow ${workflowRun.name}`);
-    
+
     // Only process workflow runs from pull requests by GitHub Copilot
     if (!workflowRun.pull_requests || workflowRun.pull_requests.length === 0) {
       console.log(`⏭️ Skipping workflow run ${workflowRun.id} - no associated PR`);
       return;
     }
-    
+
     // Get the PR to check if it's from Copilot
     const prNumber = workflowRun.pull_requests[0].number;
     console.log(`🔗 Workflow run ${workflowRun.id} linked to PR #${prNumber}`);
-    
+
     const pr = await context.octokit.pulls.get(
       context.repo({ pull_number: prNumber })
     );
