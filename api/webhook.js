@@ -1,6 +1,16 @@
 import { createNodeMiddleware, createProbot } from 'probot';
 import app from '../index.js';
 
+// Load environment variables for local testing
+if (process.env.NODE_ENV === 'production' && !process.env.APP_ID) {
+  try {
+    await import('dotenv/config');
+    console.log('✅ Loaded environment variables from .env file');
+  } catch (error) {
+    console.log('⚠️  Could not load .env file:', error.message);
+  }
+}
+
 // Development handler that bypasses signature verification
 async function developmentHandler(req, res) {
   try {
@@ -128,10 +138,16 @@ const wrappedProductionMiddleware = async (req, res) => {
     'content-type': req.headers['content-type'],
     'user-agent': req.headers['user-agent']
   });
-  
+
   try {
-    await productionMiddleware(req, res);
-    console.log(`✅ Production webhook processed successfully`);
+    // Check if productionMiddleware is a function
+    if (typeof productionMiddleware === 'function') {
+      await productionMiddleware(req, res);
+      console.log(`✅ Production webhook processed successfully`);
+    } else {
+      console.error('❌ productionMiddleware is not a function:', typeof productionMiddleware);
+      res.status(500).json({ error: 'Middleware configuration error' });
+    }
   } catch (error) {
     console.error(`❌ Production webhook error:`, error);
     if (!res.headersSent) {

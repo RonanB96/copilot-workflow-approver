@@ -1,13 +1,13 @@
 export default (app) => {
   const isDev = process.env.NODE_ENV !== 'production';
   const log = isDev ? console.log : app.log.info;
-  
+
   log('🎯 GitHub Copilot Auto-Approver loaded');
 
   // List of known Copilot usernames
   const COPILOT_USERNAMES = [
     'github-copilot[bot]',
-    'copilot-swe-agent', 
+    'copilot-swe-agent',
     'Copilot',
     'github-copilot'
   ];
