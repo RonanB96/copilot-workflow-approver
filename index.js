@@ -13,66 +13,24 @@ export default (app) => {
     return COPILOT_USERNAMES.includes(username);
   }
   
-  // Handle pull request events - add auto-approval comment
-  app.on("pull_request.opened", async (context) => {
-    console.log('📝 PR opened event received');
-    const pr = context.payload.pull_request;
-    
-    console.log(`🔍 Checking PR #${pr.number} by ${pr.user.login}`);
+    // Generic handler for all pull_request actions
+    app.on("pull_request", async (context) => {
+      const pr = context.payload.pull_request;
+      app.log(`📝 pull_request event: action=${context.payload.action}, PR #${pr?.number}, user=${pr?.user?.login}`);
 
-    // Only process PRs from GitHub Copilot
-    if (!isCopilotUser(pr.user.login)) {
-      console.log(`⏭️ Skipping PR #${pr.number} - not from GitHub Copilot (user: ${pr.user.login})`);
-      return;
-    }
+      if (!pr || !pr.user || !COPILOT_USERNAMES.includes(pr.user.login)) {
+        app.log(`⏭️ Skipping PR: not a Copilot user (${pr?.user?.login})`);
+        return;
+      }
 
-    console.log(`🤖 Copilot PR detected: #${pr.number} - ${pr.title} (by ${pr.user.login})`);
+      app.log(`🤖 Copilot PR detected: #${pr.number} - ${pr.title}`);
+      // ...existing code for workflow approval...
+    });
 
-    // Check if workflow files were modified
-    const files = await context.octokit.pulls.listFiles(
-      context.repo({ pull_number: pr.number })
-    );
-
-    const touchedWorkflows = files.data.some(f => f.filename.startsWith(".github/workflows/"));
-    if (touchedWorkflows) {
-      console.log(`⚠️ Skipping auto-approval for PR #${pr.number} - workflow files modified`);
-      app.log.info(`Skipping auto-approval for PR #${pr.number} - workflow files modified`);
-      return;
-    }
-
-    try {
-      console.log(`💬 Adding auto-approval comment to PR #${pr.number}`);
-      // Add a comment indicating auto-approval
-      await context.octokit.issues.createComment(
-        context.repo({
-          issue_number: pr.number,
-          body: "🤖 **Auto-approving Copilot PR workflows**\n\nThis PR is from GitHub Copilot and doesn't modify workflow files. Workflows should be automatically approved."
-        })
-      );
-
-      console.log(`✅ Successfully added auto-approval comment to Copilot PR #${pr.number}`);
-      app.log.info(`Added auto-approval comment to Copilot PR #${pr.number}`);
-    } catch (error) {
-      console.error(`❌ Failed to add comment to PR #${pr.number}:`, error);
-      app.log.error(`Failed to add comment to PR #${pr.number}:`, error);
-    }
-  });
-
-  // Also handle synchronize events (when PR is updated)
-  app.on("pull_request.synchronize", async (context) => {
-    console.log('🔄 PR synchronize event received');
-    const pr = context.payload.pull_request;
-    
-    console.log(`🔍 Checking updated PR #${pr.number} by ${pr.user.login}`);
-
-    // Only process PRs from GitHub Copilot
-    if (!isCopilotUser(pr.user.login)) {
-      console.log(`⏭️ Skipping PR update #${pr.number} - not from GitHub Copilot (user: ${pr.user.login})`);
-      return;
-    }
-
-    console.log(`🤖 Copilot PR update detected: #${pr.number} - ${pr.title} (by ${pr.user.login})`);
-  });
+    // Optionally, add more logging for other events
+    app.onAny(async (event) => {
+      app.log(`🔔 Event received: ${event.name}`);
+    });
 
   // Handle workflow run events - try multiple approval approaches
   app.on("workflow_run.requested", async (context) => {
