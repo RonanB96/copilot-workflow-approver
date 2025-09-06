@@ -1,10 +1,13 @@
 export default (app) => {
-  console.log('🎯 GitHub Copilot Auto-Approver loaded');
+  const isDev = process.env.NODE_ENV !== 'production';
+  const log = isDev ? console.log : app.log.info;
+  
+  log('🎯 GitHub Copilot Auto-Approver loaded');
 
   // List of known Copilot usernames
   const COPILOT_USERNAMES = [
     'github-copilot[bot]',
-    'copilot-swe-agent',
+    'copilot-swe-agent', 
     'Copilot',
     'github-copilot'
   ];
@@ -16,20 +19,20 @@ export default (app) => {
   // Generic handler for all pull_request actions
   app.on("pull_request", async (context) => {
     const pr = context.payload.pull_request;
-    console.log(`📝 pull_request event: action=${context.payload.action}, PR #${pr?.number}, user=${pr?.user?.login}`);
+    log(`📝 pull_request event: action=${context.payload.action}, PR #${pr?.number}, user=${pr?.user?.login}`);
 
     if (!pr || !pr.user || !COPILOT_USERNAMES.includes(pr.user.login)) {
-      console.log(`⏭️ Skipping PR: not a Copilot user (${pr?.user?.login})`);
+      log(`⏭️ Skipping PR: not a Copilot user (${pr?.user?.login})`);
       return;
     }
 
-    console.log(`🤖 Copilot PR detected: #${pr.number} - ${pr.title}`);
+    log(`🤖 Copilot PR detected: #${pr.number} - ${pr.title}`);
     // ...existing code for workflow approval...
   });
 
   // Optionally, add more logging for other events
   app.onAny(async (event) => {
-    console.log(`🔔 Event received: ${event.name}`);
+    log(`🔔 Event received: ${event.name}`);
   });  // Handle workflow run events - try multiple approval approaches
   app.on("workflow_run.requested", async (context) => {
     console.log('⚡ Workflow run requested event received');

@@ -109,7 +109,7 @@ MIIEpAIBAAKCAQEA1234567890abcdef
   }
 }
 
-// Production middleware
+// Production middleware with debugging
 const productionMiddleware = createNodeMiddleware(app, {
   probot: createProbot({
     appId: process.env.APP_ID,
@@ -119,5 +119,26 @@ const productionMiddleware = createNodeMiddleware(app, {
   webhookPath: '/api/webhook'
 });
 
+// Wrap the production middleware to add logging
+const wrappedProductionMiddleware = async (req, res) => {
+  console.log(`🚀 Production webhook received: ${req.method} ${req.url}`);
+  console.log(`📋 Headers:`, {
+    'x-github-event': req.headers['x-github-event'],
+    'x-github-delivery': req.headers['x-github-delivery'],
+    'content-type': req.headers['content-type'],
+    'user-agent': req.headers['user-agent']
+  });
+  
+  try {
+    await productionMiddleware(req, res);
+    console.log(`✅ Production webhook processed successfully`);
+  } catch (error) {
+    console.error(`❌ Production webhook error:`, error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Production webhook error', details: error.message });
+    }
+  }
+};
+
 // Export the appropriate handler based on environment
-export default process.env.NODE_ENV !== 'production' ? developmentHandler : productionMiddleware;
+export default process.env.NODE_ENV !== 'production' ? developmentHandler : wrappedProductionMiddleware;
